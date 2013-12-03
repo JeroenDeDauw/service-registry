@@ -3,6 +3,7 @@
 namespace ServiceRegistry\Test;
 
 use ServiceRegistry\ServiceRegistry;
+use ServiceRegistry\ServiceContainer;
 
 /**
  * @covers \ServiceRegistry\ServiceRegistry
@@ -19,8 +20,8 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 	/**
 	 * @since 0.1
 	 */
-	public function newInstance() {
-		return new ServiceRegistry();
+	public function newInstance( ServiceContainer $container = null ) {
+		return new ServiceRegistry( $container );
 	}
 
 	/**
@@ -37,9 +38,11 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 
 		$instance = ServiceRegistry::getInstance();
 
+		$this->assertInstanceOf( '\ServiceRegistry\RegistryInterface', $instance );
+		$this->assertTrue( $instance === ServiceRegistry::getInstance() );
+
 		ServiceRegistry::reset();
 
-		$this->assertInstanceOf( '\ServiceRegistry\RegistryInterface', $instance );
 		$this->assertFalse( $instance === ServiceRegistry::getInstance() );
 	}
 
@@ -48,7 +51,7 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 	 */
 	public function testRegisterObjectAsPrototype() {
 
-		$object = function( $builder ) {
+		$object = function() {
 			return new \stdClass;
 		};
 
@@ -65,7 +68,7 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 	 */
 	public function testRegisterObjectAsSingleton() {
 
-		$object = function( $builder ) {
+		$object = function() {
 			return new \stdClass;
 		};
 
@@ -84,7 +87,7 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 
 		$this->setExpectedException( 'InvalidArgumentException' );
 
-		$object = function( $builder ) {
+		$object = function() {
 			return new \stdClass;
 		};
 
@@ -102,7 +105,7 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 
 		$this->setExpectedException( 'InvalidArgumentException' );
 
-		$object = function( $builder ) {
+		$object = function() {
 			return new \stdClass;
 		};
 
@@ -197,7 +200,7 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 	 */
 	public function testGetAllServices() {
 
-		$object = function( $builder ) {
+		$object = function() {
 			return new \stdClass;
 		};
 
@@ -215,13 +218,17 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 	/**
 	 * @since 0.1
 	 */
-	public function testRegisterContainer() {
+	public function testRegisterContainerUsingAServiceContainer() {
 
-		$definition = function( $builder ) {
+		$definition = function( $registry ) {
 
-			$builder->registerObject( 'Foo', function ( $builder ) {
+			$registry->registerObject( 'Foo', function ( $registry ) {
 				return new \stdClass;
 			} );
+
+			$registry->registerObject( 'Bar', function ( $registry ) {
+				return $registry->newObject( 'Foo' );
+			}, 'singleton' );
 
 		};
 
@@ -231,18 +238,43 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 			->method( 'loadAllDefinitions' )
 			->will( $this->returnValue( $definition ) );
 
+		$this->assertRegisteredContainer( $this->newInstance( $container ) );
+
 		$instance = $this->newInstance();
 		$instance->registerContainer( $container );
 
+		$this->assertRegisteredContainer( $instance );
+	}
+
+	/**
+	 * @since 0.1
+	 */
+	public function assertRegisteredContainer( ServiceRegistry $instance ) {
+
 		$this->assertInstanceOf( '\stdClass', $instance->newObject( 'Foo' ) );
-		$this->assertFalse( $instance->newObject( 'Foo' ) === $instance->newObject( 'Foo' ) );
+		$this->assertInstanceOf( '\stdClass', $instance->newObject( 'Bar' ) );
+
+		$this->assertTrue(
+			$instance->newObject( 'Foo' ) !== $instance->newObject( 'Foo' ),
+			'Asserts that newObject() returns different instances'
+		);
+
+		$this->assertTrue(
+			$instance->newObject( 'Foo' ) !== $instance->newObject( 'Bar' ),
+			'Asserts that newObject() returns different instances'
+		);
+
+		$this->assertTrue(
+			$instance->newObject( 'Bar' ) === $instance->newObject( 'Bar' ),
+			'Asserts that newObject() returns the same instance (singleton)'
+		);
 
 	}
 
 	/**
 	 * @since 0.1
 	 */
-	public function testRegisterContainerWithRuntimeException() {
+	public function testRegisterContainerWithInvalidContainerSetOffRuntimeException() {
 
 		$this->setExpectedException( 'RuntimeException' );
 

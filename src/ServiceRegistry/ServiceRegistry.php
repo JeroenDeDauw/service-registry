@@ -28,10 +28,14 @@ class ServiceRegistry implements RegistryInterface {
 	/**
 	 * @since 0.1
 	 *
-	 * @param array $services
+	 * @param ServiceContainer $container
 	 */
-	public function __construct( array $services = array() ) {
-		$this->services = $services;
+	public function __construct( ServiceContainer $container = null ) {
+
+		if ( $container !== null ) {
+			$this->registerContainer( $container );
+		}
+
 	}
 
 	/**
@@ -49,22 +53,13 @@ class ServiceRegistry implements RegistryInterface {
 	}
 
 	/**
-	 * Reset instance
-	 *
-	 * @since 0.1
-	 */
-	public static function reset() {
-		self::$instance = null;
-	}
-
-	/**
 	 * @since 0.1
 	 *
 	 * @param ServiceContainer|null $container
 	 *
 	 * @throws RuntimeException
 	 */
-	public function registerContainer( ServiceContainer $container = null ) {
+	public function registerContainer( ServiceContainer $container ) {
 
 		$definitions = $container->loadAllDefinitions();
 
@@ -131,6 +126,13 @@ class ServiceRegistry implements RegistryInterface {
 	 */
 	public function getAllServices() {
 		return $this->services;
+	}
+
+	/**
+	 * @since 0.1
+	 */
+	public static function reset() {
+		self::$instance = null;
 	}
 
 	/**

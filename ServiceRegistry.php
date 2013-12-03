@@ -19,7 +19,7 @@ if ( defined( 'MEDIAWIKI' ) ) {
 		'name'        => 'ServiceRegistry',
 		'version'     => SERVICEREGISTRY_VERSION,
 		'author'      => array( 'mwjames' ),
-		'url'         => 'https://github.com/mwjames/composer-packages',
+		'url'         => 'https://github.com/mwjames/service-registry',
 		'description' => 'Minimalistic service and dependency injection library',
 	);
 
