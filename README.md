@@ -2,7 +2,11 @@
 [![Scrutinizer Quality Score](https://scrutinizer-ci.com/g/mwjames/service-registry/badges/quality-score.png?s=adf2e12799727916defd556045e4c6da766501dd)](https://scrutinizer-ci.com/g/mwjames/service-registry/)
 [![Code Coverage](https://scrutinizer-ci.com/g/mwjames/service-registry/badges/coverage.png?s=14dacb9b418c90512e427e8cbfdeb21aee2ff0ea)](https://scrutinizer-ci.com/g/mwjames/service-registry/)
 
-A minimalistic service and dependency injection library allowing service definitions being loaded from a container or directly registered with an instance.
+A minimalistic service and dependency injection library allowing services being loaded from a container or being directly registered with an instance.
+* Support for shared and separate instance invocation
+* Support for prototypical and singleton scope during object invocation
+* Functionality to register multiple container
+* Functionality to detect circular references with an object graph
 
 ## Installation
 The recommended way to install this library is through [Composer][composer]. Just add the following to your ``composer.json`` file and run the ``php composer.phar install/update`` command.
@@ -21,7 +25,7 @@ The recommended way to install this library is through [Composer][composer]. Jus
 }
 ```
 ## Example
-Register service definitions directly with the registry instance.
+Register services directly with the registry instance.
 
 ```php
 ServiceRegistry::getInstance()->registerObject( 'Foz', function( $registry ) {
@@ -31,7 +35,7 @@ ServiceRegistry::getInstance()->registerObject( 'Foz', function( $registry ) {
 $foz = ServiceRegistry::getInstance()->newObject( 'Foz' );
 ```
 
-Specify definitions using a service container and register them with the `ServiceRegistry` instance.
+Specify services using a `ServiceContainer` and register them with the `ServiceRegistry` instance at a later point.
 ```php
 use ServiceRegistry\ServiceContainer;
 
@@ -61,7 +65,7 @@ class FooContainer implements ServiceContainer {
 ServiceRegistry::getInstance()->registerContainer( new FooContainer() );
 ```
 
-Create service instances from an injected container.
+Create a service instance from an injected container with a prototypical (default) scope where each injection will result in a new instance while the singleton scope will return the same instance over the lifetime of a request.
 ```php
 /**
  * Create new 'Foo' prototype instance
@@ -73,6 +77,21 @@ $fooInstance = ServiceRegistry::getInstance()->newObject( 'Foo' );
  */
 $barInstance = ServiceRegistry::getInstance()->newObject( 'Bar' );
 ```
+
+Shared and separate instance invocation allowing to share definitions amongst application or
+uncouple definitions based on a given identifier (namespace, id, group etc.).
+```php
+/**
+ * Shared instance
+ */
+ServiceRegistry::getInstance()->registerContainer( new FooContainer() );
+
+/**
+ * Separate 'foo' instance
+ */
+ServiceRegistry::getInstance( 'foo' )->registerContainer( new FooContainer() );
+```
+For more exhaustive examples, please consult the unit test.
 
 [composer]: http://getcomposer.org/
 

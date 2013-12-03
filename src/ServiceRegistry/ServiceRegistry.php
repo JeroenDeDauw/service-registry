@@ -23,7 +23,7 @@ class ServiceRegistry implements RegistryInterface {
 	/**
 	 * @var ServiceRegistry
 	 */
-	protected static $instance = null;
+	protected static $instance = array();
 
 	/**
 	 * @var array
@@ -34,7 +34,7 @@ class ServiceRegistry implements RegistryInterface {
 	);
 
 	/**
-	 * Iteration counter tracking depth of an dependency graph
+	 * Iteration counter tracking the depth of a dependency graph
 	 *
 	 * @var integer
 	 */
@@ -63,15 +63,17 @@ class ServiceRegistry implements RegistryInterface {
 	/**
 	 * @since 0.1
 	 *
+	 * @param string $id id to separate access to an instance
+	 *
 	 * @return ServiceRegistry
 	 */
-	public static function getInstance() {
+	public static function getInstance( $id = 'shared' ) {
 
-		if ( self::$instance === null ) {
-			self::$instance = new self();
+		if ( !isset( self::$instance[ $id ] ) ) {
+			self::$instance[ $id ] = new self();
 		}
 
-		return self::$instance;
+		return self::$instance[ $id ];
 	}
 
 	/**
@@ -152,6 +154,19 @@ class ServiceRegistry implements RegistryInterface {
 	/**
 	 * @since 0.1
 	 *
+	 * @return boolean
+	 * @throws InvalidArgumentException
+	 */
+	public function hasObject( $objectName ) {
+
+		$this->assertIsStringOrSetOffException( $objectName );
+
+		return $this->contains( '_serv_', $objectName ) || $this->contains( '_arg_', $objectName );
+	}
+
+	/**
+	 * @since 0.1
+	 *
 	 * @return array
 	 */
 	public function getAllServices() {
@@ -162,7 +177,7 @@ class ServiceRegistry implements RegistryInterface {
 	 * @since 0.1
 	 */
 	public static function reset() {
-		self::$instance = null;
+		self::$instance = array();
 	}
 
 	/**
@@ -232,21 +247,21 @@ class ServiceRegistry implements RegistryInterface {
 	 * @since 0.1
 	 */
 	protected function contains( $group, $key ) {
-		return isset( $this->container[$group][$key] ) || array_key_exists( $key, $this->container[$group] );
+		return isset( $this->container[ $group ][ $key ] ) || array_key_exists( $key, $this->container[ $group ] );
 	}
 
 	/**
 	 * @since 0.1
 	 */
 	protected function attach( $group, $key, $value = null ) {
-		$this->container[$group][$key] = $value;
+		$this->container[ $group ][ $key ] = $value;
 	}
 
 	/**
 	 * @since 0.1
 	 */
 	protected function lookup( $group, $key ) {
-		return $this->container[$group][$key];
+		return $this->container[ $group ][ $key ];
 	}
 
 }

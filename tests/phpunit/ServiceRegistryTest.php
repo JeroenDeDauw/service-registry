@@ -20,6 +20,20 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 	/**
 	 * @since 0.1
 	 */
+	public function newServiceContainer( $return = null ) {
+
+		$container = $this->getMockForAbstractClass( '\ServiceRegistry\ServiceContainer' );
+
+		$container->expects( $this->any() )
+			->method( 'loadAllDefinitions' )
+			->will( $this->returnValue( $return ) );
+
+		return $container;
+	}
+
+	/**
+	 * @since 0.1
+	 */
 	public function newInstance( ServiceContainer $container = null ) {
 		return new ServiceRegistry( $container );
 	}
@@ -34,7 +48,7 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 	/**
 	 * @since 0.1
 	 */
-	public function testStaticInstance() {
+	public function testConstructStaticInstance() {
 
 		$instance = ServiceRegistry::getInstance();
 
@@ -49,6 +63,24 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 	/**
 	 * @since 0.1
 	 */
+	public function testConstructSeparateStaticInstanceInvocation() {
+
+		$object = function() {
+			return new \stdClass;
+		};
+
+		ServiceRegistry::getInstance( 'foo' )->registerObject( 'Foo', $object );
+		ServiceRegistry::getInstance( 'bar' )->registerObject( 'Foo', $object );
+
+		$this->assertTrue( ServiceRegistry::getInstance( 'foo' ) === ServiceRegistry::getInstance( 'foo' ) );
+		$this->assertFalse( ServiceRegistry::getInstance( 'foo' ) === ServiceRegistry::getInstance( 'bar' ) );
+
+		ServiceRegistry::reset();
+	}
+
+	/**
+	 * @since 0.1
+	 */
 	public function testRegisterObjectAsPrototype() {
 
 		$object = function() {
@@ -58,6 +90,7 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 		$instance = $this->newInstance();
 		$instance->registerObject( 'Foo', $object );
 
+		$this->assertTrue( $instance->hasObject( 'Foo' ) );
 		$this->assertInstanceOf( '\stdClass', $instance->newObject( 'Foo' ) );
 		$this->assertFalse( $instance->newObject( 'Foo' ) === $instance->newObject( 'Foo' ) );
 
@@ -144,6 +177,9 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 			'Bar' => 'FooBar'
 		) );
 
+		$this->assertTrue( $instance->hasObject( 'Bar' ) );
+		$this->assertFalse( $instance->hasObject( 'FooBar' ) );
+
 		$this->assertInstanceOf( '\stdClass', $newObject );
 		$this->assertEquals( 'FooBar', $newObject->foo );
 
@@ -172,6 +208,18 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 		) );
 
 	}
+
+	/**
+	 * @since 0.1
+	 */
+	public function testHasObjectWithInvalidArgumentSetOffInvalidArgumentException() {
+
+		$this->setExpectedException( 'InvalidArgumentException' );
+
+		$this->newInstance()->hasObject( new \stdClass );
+
+	}
+
 
 	/**
 	 * @since 0.1
@@ -232,11 +280,7 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 
 		};
 
-		$container = $this->getMockForAbstractClass( '\ServiceRegistry\ServiceContainer' );
-
-		$container->expects( $this->any() )
-			->method( 'loadAllDefinitions' )
-			->will( $this->returnValue( $definition ) );
+		$container = $this->newServiceContainer( $definition );
 
 		$this->assertRegisteredContainer( $this->newInstance( $container ) );
 
@@ -278,14 +322,7 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 
 		$this->setExpectedException( 'RuntimeException' );
 
-		$container = $this->getMockForAbstractClass( '\ServiceRegistry\ServiceContainer' );
-
-		$container->expects( $this->any() )
-			->method( 'loadAllDefinitions' )
-			->will( $this->returnValue( 'Foo' ) );
-
-		$instance = $this->newInstance();
-		$instance->registerContainer( $container );
+		$this->newInstance()->registerContainer( $this->newServiceContainer( 'Foo' ) );
 
 	}
 
