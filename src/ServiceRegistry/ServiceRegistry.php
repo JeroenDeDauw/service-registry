@@ -5,6 +5,7 @@ namespace ServiceRegistry;
 use Closure;
 
 use InvalidArgumentException;
+use OutOfBoundsException;
 use RuntimeException;
 
 /**
@@ -19,11 +20,32 @@ use RuntimeException;
  */
 class ServiceRegistry implements RegistryInterface {
 
-	/** @var ServiceRegistry */
+	/**
+	 * @var ServiceRegistry
+	 */
 	protected static $instance = null;
 
-	/** @var array */
-	protected $services = array();
+	/**
+	 * @var array
+	 */
+	protected $container = array(
+		'_serv_' => array(),
+		'_arg_'  => array()
+	);
+
+	/**
+	 * Iteration counter tracking depth of an dependency graph
+	 *
+	 * @var integer
+	 */
+	protected $recursionLevel = 0;
+
+	/**
+	 * Specifies a max depth (or threshold) for a dependency graph
+	 *
+	 * @var integer
+	 */
+	protected $recursionDepth = 10;
 
 	/**
 	 * @since 0.1
@@ -81,15 +103,15 @@ class ServiceRegistry implements RegistryInterface {
 	 */
 	public function registerObject( $objectName, $objectSignature, $objectScope = null ) {
 
-		if ( !is_string( $objectName ) ) {
-			throw new InvalidArgumentException( 'The key is expected to be a string' );
-		}
+		$this->assertIsStringOrSetOffException( $objectName );
 
 		if ( !( $objectSignature instanceof Closure ) ) {
 			throw new InvalidArgumentException( 'The object signature ought to be a closure' );
 		}
 
-		$this->attach( $objectName, $objectScope !== null ? $this->addSingleton( $objectSignature ) : $objectSignature );
+		$objectSignature = $objectScope !== null ? $this->addSingleton( $objectSignature ) : $objectSignature;
+
+		$this->attach( '_serv_', $objectName, $objectSignature );
 	}
 
 	/**
@@ -101,22 +123,30 @@ class ServiceRegistry implements RegistryInterface {
 	 * @return mixed
 	 * @throws InvalidArgumentException
 	 * @throws RuntimeException
+	 * @throws OutOfBoundsException
 	 */
 	public function newObject( $objectName, $arguments = null ) {
 
-		if ( !is_string( $objectName ) ) {
-			throw new InvalidArgumentException( 'The object name is expected to be a string' );
+		$this->assertIsStringOrSetOffException( $objectName );
+
+		if ( $this->recursionLevel++ > $this->recursionDepth ) {
+			throw new OutOfBoundsException( "Possible circular reference for '{$objectName}' detected" );
 		}
 
-		if ( !$this->contains( $objectName ) ) {
-			throw new RuntimeException( "Requested {$objectName} service is not available" );
+		$objectSignature = $this->findObjectSignature( $objectName );
+
+		if ( $objectSignature === null ) {
+			throw new RuntimeException( "Requested '{$objectName}' service is not available" );
 		}
 
-		$this->addArguments( $arguments );
+		if ( is_array( $arguments ) ) {
+			$this->addArguments( $arguments );
+		}
 
-		$objectSignature = $this->lookup( $objectName );
+		$instance = is_callable( $objectSignature ) ? $objectSignature( $this ) : $objectSignature;
+		$this->recursionLevel--;
 
-		return is_callable( $objectSignature ) ? $objectSignature( $this ) : $objectSignature;
+		return $instance;
 	}
 
 	/**
@@ -125,7 +155,7 @@ class ServiceRegistry implements RegistryInterface {
 	 * @return array
 	 */
 	public function getAllServices() {
-		return $this->services;
+		return $this->container['_serv_'];
 	}
 
 	/**
@@ -133,6 +163,22 @@ class ServiceRegistry implements RegistryInterface {
 	 */
 	public static function reset() {
 		self::$instance = null;
+	}
+
+	/**
+	 * @since 0.1
+	 */
+	protected function findObjectSignature( $objectName ) {
+
+		if ( $this->contains( '_serv_', $objectName ) ) {
+			return $this->lookup( '_serv_', $objectName );;
+		}
+
+		if ( $this->contains( '_arg_', $objectName ) ) {
+			return $this->lookup( '_arg_', $objectName );;
+		}
+
+		return null;
 	}
 
 	/**
@@ -155,41 +201,52 @@ class ServiceRegistry implements RegistryInterface {
 	 *
 	 * @throws InvalidArgumentException
 	 */
-	protected function addArguments( $arguments ) {
+	protected function addArguments( array $arguments ) {
 
-		if ( is_array( $arguments ) ) {
+		foreach ( $arguments as $key => $value ) {
 
-			foreach ( $arguments as $key => $value ) {
+			$this->assertIsStringOrSetOffException( $key );
 
-				if ( !is_string( $key ) ) {
-					throw new InvalidArgumentException( 'The argument key is expected to be a string' );
-				}
-
-				$this->attach( $key, function() use( $value ) { return $value; } );
-			}
+			$this->attach( '_arg_', $key, function() use( $value ) {
+				return $value;
+			} );
 		}
 
 	}
 
 	/**
 	 * @since 0.1
+	 *
+	 * @throws InvalidArgumentException
 	 */
-	protected function contains( $key ) {
-		return isset( $this->services[$key] ) || array_key_exists( $key, $this->services );
+	protected function assertIsStringOrSetOffException( $key ) {
+
+		if ( !is_string( $key ) ) {
+			throw new InvalidArgumentException( 'Key ought to be a string' );
+		}
+
+		return true;
 	}
 
 	/**
 	 * @since 0.1
 	 */
-	protected function attach( $key, $value = null ) {
-		$this->services[$key] = $value;
+	protected function contains( $group, $key ) {
+		return isset( $this->container[$group][$key] ) || array_key_exists( $key, $this->container[$group] );
 	}
 
 	/**
 	 * @since 0.1
 	 */
-	protected function lookup( $key ) {
-		return $this->services[$key];
+	protected function attach( $group, $key, $value = null ) {
+		$this->container[$group][$key] = $value;
+	}
+
+	/**
+	 * @since 0.1
+	 */
+	protected function lookup( $group, $key ) {
+		return $this->container[$group][$key];
 	}
 
 }

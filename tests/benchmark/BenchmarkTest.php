@@ -57,9 +57,37 @@ class BenchmarkTest extends \PHPUnit_Framework_TestCase {
 	}
 
 	/**
+	 * @dataProvider comparisonDataProvider
+	 *
 	 * @since 0.1
 	 */
-	public function testNewObjectRuntimeComparison() {
+	public function testNewObjectRuntimeComparison( $setup ) {
+
+		$instance = $setup['instance'];
+
+		echo "\n";
+
+		$counter = 1000;
+		$s = array();
+		$time = microtime( true );
+
+		for( $x = 0; $x < $counter; $x++ ) {
+			$s[] = $instance()->newObject( 'Foz' );
+		};
+
+		$time = ( microtime( true ) - $time );
+		echo 'memory: ' . memory_get_peak_usage() . ' total: ' . round( $time, 7 ) . ' avg: ' . round( $time / $counter, 7 ) . " time (sec)\n";
+		unset( $s );
+
+		$this->assertTrue( true );
+	}
+
+	/**
+	 * @since 0.1
+	 */
+	public function comparisonDataProvider() {
+
+		$provider = array();
 
 		$container = $this->getMockForAbstractClass( '\ServiceRegistry\ServiceContainer' );
 
@@ -67,36 +95,22 @@ class BenchmarkTest extends \PHPUnit_Framework_TestCase {
 			->method( 'loadAllDefinitions' )
 			->will( $this->returnValue( $this->newObjectGraph() ) );
 
-		$instance = new ServiceRegistry( $container );
+		$newInstance = new ServiceRegistry( $container );
 
-		echo "\n";
+		$provider[] = array(
+			array( 'instance' => function() use( $newInstance ) {
+			return $newInstance;
+		} ) );
 
-		$counter = 1000;
-		$s = array();
-		$time = microtime( true );
-
-		for( $x = 0; $x < $counter; $x++ ) {
-			$s[] = $instance->newObject( 'Foz' );
-		};
-
-		echo 'memory: ' . memory_get_peak_usage() . ' time: ' . ( ( microtime( true ) - $time ) / $counter ) . " sec\n";
-		unset( $s );
-
-		echo "\n";
 		ServiceRegistry::getInstance()->registerContainer( $container );
 
-		$counter = 1000;
-		$s = array();
-		$time = microtime( true );
+		$provider[] = array(
+			array( 'instance' => function() {
+			return ServiceRegistry::getInstance();
+		} ) );
 
-		for( $x = 0; $x < $counter; $x++ ) {
-			$s[] = ServiceRegistry::getInstance()->newObject( 'Foz' );
-		};
+		return $provider;
 
-		echo 'memory: ' . memory_get_peak_usage() . ' time: ' . ( ( microtime( true ) - $time ) / $counter ) . " sec\n";
-		unset( $s );
-
-		$this->assertTrue( true );
 	}
 
 }

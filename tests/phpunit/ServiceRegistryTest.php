@@ -289,4 +289,20 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 
 	}
 
+	/**
+	 * @since 0.1
+	 */
+	public function testCircularReferenceDetectionSetOffOutOfBoundsException() {
+
+		$this->setExpectedException( 'OutOfBoundsException' );
+
+		$instance = $this->newInstance();
+		$instance->registerObject( 'Foo', function( $registry ) {
+			return $registry->newObject( 'Foo' );
+		} );
+
+		$instance->newObject( 'Foo' );
+
+	}
+
 }
