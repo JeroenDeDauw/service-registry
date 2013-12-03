@@ -1,0 +1,28 @@
+{
+	"name": "mwjames/service-registry",
+	"type": "library",
+	"description": "Minimalistic service and dependency injection library",
+	"keywords": [
+		"dependency injection",
+    "service registry"
+	],
+	"homepage": "https://github.com/mwjames/service-registry",
+	"license": "GPL-2.0+",
+	"authors": [
+		{
+			"name": "mwjames",
+			"homepage": "https://github.com/mwjames"
+		}
+	],
+	"require": {
+		"php": ">=5.3.2"
+	},
+	"autoload": {
+		"files" : [
+			"ServiceRegistry.php"
+		],
+		"psr-0": {
+			"ServiceRegistry\\": "src/"
+		}
+	}
+}
