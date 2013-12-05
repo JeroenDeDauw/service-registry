@@ -6,7 +6,7 @@ A minimalistic service and dependency injection library allowing services being 
 * Support for shared and separate instance invocation
 * Support for prototypical and singleton scope during object invocation
 * Functionality to register multiple container
-* Functionality to detect circular references with an object graph
+* Functionality to detect circular references within an object graph
 
 ## Installation
 The recommended way to install this library is through [Composer][composer]. Just add the following to your ``composer.json`` file and run the ``php composer.phar install/update`` command.
@@ -35,7 +35,7 @@ ServiceRegistry::getInstance()->registerObject( 'Foz', function( $registry ) {
 $foz = ServiceRegistry::getInstance()->newObject( 'Foz' );
 ```
 
-Specify services using a `ServiceContainer` and register them with the `ServiceRegistry` instance at a later point.
+Specify services using a `ServiceContainer` and register them with the `ServiceRegistry` instance at a convenient time.
 ```php
 use ServiceRegistry\ServiceContainer;
 
@@ -62,7 +62,15 @@ class FooContainer implements ServiceContainer {
 
 }
 
+/**
+ * Register a container with a static instance
+ */
 ServiceRegistry::getInstance()->registerContainer( new FooContainer() );
+
+/**
+ * Register a container with a non-static instance
+ */
+$instance = new ServiceRegistry( new FooContainer() );
 ```
 
 Create a service instance from an injected container with a prototypical (default) scope where each injection will result in a new instance while the singleton scope will return the same instance over the lifetime of a request.

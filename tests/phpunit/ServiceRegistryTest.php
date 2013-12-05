@@ -65,9 +65,7 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 	 */
 	public function testConstructSeparateStaticInstanceInvocation() {
 
-		$object = function() {
-			return new \stdClass;
-		};
+		$object = function() { return new \stdClass; };
 
 		ServiceRegistry::getInstance( 'foo' )->registerObject( 'Foo', $object );
 		ServiceRegistry::getInstance( 'bar' )->registerObject( 'Foo', $object );
@@ -83,9 +81,7 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 	 */
 	public function testRegisterObjectAsPrototype() {
 
-		$object = function() {
-			return new \stdClass;
-		};
+		$object = function() { return new \stdClass; };
 
 		$instance = $this->newInstance();
 		$instance->registerObject( 'Foo', $object );
@@ -101,9 +97,7 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 	 */
 	public function testRegisterObjectAsSingleton() {
 
-		$object = function() {
-			return new \stdClass;
-		};
+		$object = function() { return new \stdClass; };
 
 		$instance = $this->newInstance();
 		$instance->registerObject( 'Foo', $object, 'singleton' );
@@ -118,15 +112,12 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 	 */
 	public function testRegisterInvalidObjectSetOffInvalidArgumentException() {
 
-		$this->setExpectedException( 'InvalidArgumentException' );
+		$object = function() { return new \stdClass; };
 
-		$object = function() {
-			return new \stdClass;
-		};
+		$this->setExpectedException( 'InvalidArgumentException' );
 
 		$instance = $this->newInstance();
 		$instance->registerObject( 'Foo', $object );
-
 		$instance->newObject( array( 'Foo' ) );
 
 	}
@@ -136,12 +127,9 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 	 */
 	public function testRegisterInvalidKeySetOffInvalidArgumentException() {
 
+		$object = function() { return new \stdClass; };
+
 		$this->setExpectedException( 'InvalidArgumentException' );
-
-		$object = function() {
-			return new \stdClass;
-		};
-
 		$this->newInstance()->registerObject( $object, null );
 
 	}
@@ -149,10 +137,9 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 	/**
 	 * @since 0.1
 	 */
-	public function testRegisterInvalidObjectSignatureSetOffInvalidArgumentException() {
+	public function testRegisterInvalidObjectSignatureSetOffRuntimeException() {
 
-		$this->setExpectedException( 'InvalidArgumentException' );
-
+		$this->setExpectedException( 'RuntimeException' );
 		$this->newInstance()->registerObject( 'Foo', null );
 
 	}
@@ -215,7 +202,6 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 	public function testHasObjectWithInvalidArgumentSetOffInvalidArgumentException() {
 
 		$this->setExpectedException( 'InvalidArgumentException' );
-
 		$this->newInstance()->hasObject( new \stdClass );
 
 	}
@@ -248,18 +234,14 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 	 */
 	public function testGetAllServices() {
 
-		$object = function() {
-			return new \stdClass;
-		};
+		$object = function() { return new \stdClass; };
 
 		$instance = $this->newInstance();
 		$instance->registerObject( 'FooMan', $object );
 		$instance->registerObject( 'FanMu', $object );
 
-		$this->assertEquals(
-			array( 'FooMan', 'FanMu' ),
-			array_keys( $instance->getAllServices() )
-		);
+		$this->assertInternalType( 'array', $instance->getAllServices() );
+		$this->assertCount( 2, $instance->getAllServices() );
 
 	}
 
@@ -321,7 +303,6 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 	public function testRegisterContainerWithInvalidContainerSetOffRuntimeException() {
 
 		$this->setExpectedException( 'RuntimeException' );
-
 		$this->newInstance()->registerContainer( $this->newServiceContainer( 'Foo' ) );
 
 	}
@@ -339,6 +320,32 @@ class ServiceRegistryTest extends \PHPUnit_Framework_TestCase {
 		} );
 
 		$instance->newObject( 'Foo' );
+
+	}
+
+	/**
+	 * @since 0.1
+	 */
+	public function testStrToLowerObjectInvocation() {
+
+		$object = function() { return new \stdClass; };
+
+		$instance = $this->newInstance();
+		$instance->registerObject( 'FooMan', $object, 'singleton' );
+		$instance->registerObject( 'FanMu', $object );
+
+		$this->assertInstanceOf( '\stdClass', $instance->newObject( 'fooman' ) );
+		$this->assertInstanceOf( '\stdClass', $instance->newObject( 'FooMan' ) );
+		$this->assertInstanceOf( '\stdClass', $instance->newObject( 'FaNmU' ) );
+
+		$instance->newObject( 'FaNmU', array(
+			'Bar' => $instance->newObject( 'fooman' )
+		) );
+
+		$this->assertTrue(
+			$instance->newObject( 'fooman' ) === $instance->newObject( 'bar' ),
+			"Asserts that the invoked 'Bar' contains the same instance as 'FooMan' (singleton)"
+		);
 
 	}
 
