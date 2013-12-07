@@ -5,7 +5,7 @@
 A minimalistic service and dependency injection library allowing services being loaded from a container or being directly registered with an instance.
 * Support for shared and separate instance invocation
 * Support for prototypical and singleton scope during object invocation
-* Functionality to register multiple container
+* Functionality to register multiple containers
 * Functionality to detect circular references within an object graph
 
 ## Installation
